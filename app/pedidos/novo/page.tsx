@@ -42,7 +42,7 @@ const formSchema = z.object({
     message: "Nome deve ter pelo menos 3 caracteres.",
   }),
   whatsapp: z.string().regex(/^$$\d{2}$$ \d \d{4}-\d{4}$/, {
-    message: "Formato inválido. Use (XX) X XXXX-XXXX",
+    message: "Número de WhatsApp inválido.",
   }),
   detalhes: z.string().min(10, {
     message: "Detalhes devem ter pelo menos 10 caracteres.",
@@ -52,8 +52,8 @@ const formSchema = z.object({
   dataEntrega: z.date({
     required_error: "A data de entrega é obrigatória.",
   }),
-  valorTotal: z.string().regex(/^R\$ \d{1,3}(\.\d{3})*,\d{2}$/, {
-    message: "Formato inválido. Use R$ X.XXX,XX",
+  valorTotal: z.string({
+    required_error: "O valor total é obrigatório.",
   }),
   formaPagamento: z.nativeEnum(FormaPagamento),
 });
@@ -76,6 +76,7 @@ export default function NovoPedido() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log(values);
     const valorTotalNumerico = Number.parseFloat(
       values.valorTotal.replace("R$ ", "").replace(".", "").replace(",", ".")
     );
@@ -112,7 +113,7 @@ export default function NovoPedido() {
               <FormItem>
                 <FormLabel>WhatsApp</FormLabel>
                 <FormControl>
-                  <InputMask mask="(99) 99999-9999" {...field}>
+                  <InputMask mask="(99) 9 9999-9999" {...field}>
                     {(inputProps: any) => <Input {...inputProps} />}
                   </InputMask>
                 </FormControl>
@@ -227,15 +228,6 @@ export default function NovoPedido() {
               <FormItem>
                 <FormLabel>Valor Total</FormLabel>
                 <FormControl>
-                  {/* <InputMask
-                    mask="R$ 999.999,99"
-                    value={field.value}
-                    onChange={field.onChange}
-                    maskChar={null}
-                    placeholder="R$ 0,00"
-                  >
-                    {(inputProps: any) => <Input {...inputProps} />}
-                  </InputMask> */}
                   <Input
                     id="value"
                     name="value"
