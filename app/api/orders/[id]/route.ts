@@ -4,7 +4,9 @@ import { getOrderByIdSchema, updateOrderSchema } from "@/schemas/orderSchemas";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ["query", "info", "warn", "error"],
+});
 
 export async function GET(
   req: Request,

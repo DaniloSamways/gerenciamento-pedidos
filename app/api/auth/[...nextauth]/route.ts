@@ -16,7 +16,9 @@ declare module "next-auth" {
   }
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ["query", "info", "warn", "error"],
+});
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
