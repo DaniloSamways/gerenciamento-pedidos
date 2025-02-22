@@ -1,0 +1,13 @@
+{
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "NEXTAUTH_SECRET": "@nextauth_secret"
+  },
+  "postbuild": ["npx prisma migrate deploy"]
+}
