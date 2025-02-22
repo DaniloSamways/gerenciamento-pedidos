@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
-import { getStatusColor, type Pedido } from "../types/pedido";
+import { getStatusColor, type Order } from "../types/pedido";
 import { Button } from "./ui/button";
 
 interface PedidoModalProps {
-  pedido: Pedido;
+  pedido: Order;
   onClose: () => void;
 }
 
@@ -39,7 +39,7 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
       onClick={onClose}
     >
       <div
-        className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+        className="relative top-20 mx-auto p-5 border w-[500px] shadow-lg rounded-md bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mt-3 text-center">
@@ -50,7 +50,7 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
           <div className="flex flex-col gap-4 mt-2 px-7 py-3 text-left text-sm text-pastel-500">
             <div>
               <span className="font-bold text-base">Criado em</span>
-              <p>{formatarData(pedido.dataCriado, pedido.horaEntrega)}</p>
+              <p>{formatarData(pedido.createdAt, pedido.deliveryTime)}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -69,12 +69,12 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
                 <span className="font-bold text-base">Pago</span>
                 <p
                   className={`px-2 py-1 max-w-fit rounded-full text-xs font-semibold ${
-                    pedido.pago
+                    pedido.paid
                       ? "bg-green-100 text-green-800"
                       : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {pedido.pago ? "Sim" : "Não"}
+                  {pedido.paid ? "Sim" : "Não"}
                 </p>
               </div>
             </div>
@@ -82,56 +82,56 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="font-bold text-base">Nome</span>
-                <p>{pedido.nomeCompleto}</p>
+                <p>{pedido.fullName}</p>
               </div>
 
               <div>
                 <span className="font-bold text-base">WhatsApp</span>
-                <p>{pedido.whatsapp}</p>
+                <p>{pedido.phone}</p>
               </div>
             </div>
 
             <div>
               <span className="font-bold text-base">Detalhes</span>
-              <p>{pedido.detalhes}</p>
+              <p className="whitespace-pre-line">{pedido.details}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="font-bold text-base">Tipo de Entrega</span>
-                <p>{pedido.tipoEntrega.toUpperCase()}</p>
+                <p>{pedido.deliveryType.toUpperCase()}</p>
               </div>
               <div>
                 <span className="font-bold text-base">Data de Entrega</span>
-                <p>{formatarData(pedido.dataEntrega, pedido.horaEntrega)}</p>
+                <p>{formatarData(pedido.deliveryDate, pedido.deliveryTime)}</p>
               </div>
             </div>
 
-            {pedido.tipoEntrega === "entrega" && (
+            {pedido.deliveryType === "entrega" && (
               <div>
                 <span className="font-bold text-base">Endereço</span>
-                <p>{pedido.enderecoEntrega}</p>
+                <p>{pedido.deliveryAddress}</p>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="font-bold text-base">Valor Total</span>
-                <p>R$ {formatarValor(pedido.valorTotal)}</p>
+                <p>R$ {formatarValor(pedido.orderValue)}</p>
               </div>
 
               <div>
-                <span className="font-bold text-base">Forma de Pagamento</span>
-                <p>{pedido.formaPagamento}</p>
+                <span className="font-bold text-base">Forma Pagamento</span>
+                <p>{pedido.paymentMethod}</p>
               </div>
             </div>
 
-            {pedido.status === "Cancelado" && pedido.motivoCancelamento && (
+            {pedido.status === "Cancelado" && pedido.cancellationReason && (
               <div>
                 <span className="font-bold text-base">
                   Motivo do Cancelamento
                 </span>
-                <p>{pedido.motivoCancelamento}</p>
+                <p>{pedido.cancellationReason}</p>
               </div>
             )}
           </div>

@@ -1,96 +1,99 @@
-import { type Pedido, StatusPedido, FormaPagamento } from "../types/pedido";
+import { type Order, OrderStatus, PaymentMethod } from "../types/pedido";
 
-class PedidoService {
-  private pedidos: Pedido[] = [];
+class OrderService {
+  private baseUrl = "/api/orders";
 
-  criarPedido(
-    pedido: Omit<
-      Pedido,
-      "id" | "status" | "formaPagamento" | "pago" | "dataCriado"
-    >
-  ): Pedido {
-    const novoPedido: Pedido = {
-      ...pedido,
-      id: Date.now().toString(),
-      dataCriado: new Date().toString(),
-      status: StatusPedido.NovoPedido,
-      formaPagamento: FormaPagamento.NaoDefinido,
-      pago: false,
-    };
-    this.pedidos.push(novoPedido);
-    return novoPedido;
+  async createOrder(
+    order: Omit<Order, "id" | "status" | "paymentMethod" | "paid" | "createdAt">
+  ): Promise<Order> {
+    const response = await fetch(this.baseUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...order, userId: "67b92dfedca514be3c320c2e" }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Erro ao criar pedido.");
+    }
+
+    return response.json();
   }
 
-  obterTodosPedidos(): Pedido[] {
-    return this.pedidos;
+  async getAllOrders(): Promise<Order[]> {
+    const response = await fetch(this.baseUrl);
+
+    if (!response.ok) {
+      throw new Error("Erro ao buscar pedidos.");
+    }
+
+    return response.json();
   }
 
-  obterPedidoPorId(id: string): Pedido | undefined {
-    return this.pedidos.find((pedido) => pedido.id === id);
+  async getOrderById(id: string): Promise<Order[] | undefined> {
+    const response = await fetch(`${this.baseUrl}/${id}`);
+
+    if (!response.ok) {
+      throw new Error("Erro ao buscar pedidos.");
+    }
+
+    return response.json();
   }
 
-  atualizarPedido(
+  async updateOrder(
     id: string,
-    dadosAtualizados: Partial<Pedido>
-  ): Pedido | undefined {
-    const index = this.pedidos.findIndex((pedido) => pedido.id === id);
-    if (index !== -1) {
-      this.pedidos[index] = { ...this.pedidos[index], ...dadosAtualizados };
-      return this.pedidos[index];
+    updatedData: Partial<Order>
+  ): Promise<Order | undefined> {
+    const response = await fetch(this.baseUrl + `/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) {
+      throw new Error("Erro ao atualizar pedido.");
     }
-    return undefined;
+
+    return response.json();
   }
 
-  atualizarStatusPedido(
+  async updateOrderStatus(
     id: string,
-    novoStatus: StatusPedido,
-    motivoCancelamento?: string
-  ): Pedido | undefined {
-    const pedido = this.obterPedidoPorId(id);
-    if (pedido) {
-      pedido.status = novoStatus;
-      if (novoStatus === StatusPedido.Cancelado) {
-        pedido.motivoCancelamento = motivoCancelamento;
-      }
-      return pedido;
-    }
-    return undefined;
+    newStatus: OrderStatus,
+    cancellationReason?: string
+  ): Promise<Order | undefined> {
+    return this.updateOrder(id, { status: newStatus, cancellationReason });
   }
 
-  filtrarPedidos(filtro: { termo?: string; pago?: boolean }): Pedido[] {
-    if (!filtro.termo) {
-      return this.pedidos;
+  async filterOrders(filter: {
+    term?: string;
+    paid?: boolean;
+  }): Promise<Order[]> {
+    const params = new URLSearchParams();
+    if (filter.term) params.append("status", filter.term);
+    if (filter.paid !== undefined) params.append("paid", String(filter.paid));
+    const response = await fetch(`${this.baseUrl}?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error("Erro ao buscar pedidos.");
     }
 
-    const termoLowerCase = filtro.termo.toLowerCase();
-
-    return this.pedidos.filter(
-      (pedido) =>
-        pedido.nomeCompleto.toLowerCase().includes(termoLowerCase) ||
-        pedido.whatsapp.includes(filtro.termo ?? "")
-    );
+    return response.json();
   }
 
-  atualizarFormaPagamento(
+  async updatePaymentMethod(
     id: string,
-    formaPagamento: FormaPagamento
-  ): Pedido | undefined {
-    const pedido = this.obterPedidoPorId(id);
-    if (pedido) {
-      pedido.formaPagamento = formaPagamento;
-      return pedido;
-    }
-    return undefined;
+    paymentMethod: PaymentMethod
+  ): Promise<Order | undefined> {
+    return this.updateOrder(id, { paymentMethod });
   }
 
-  alternarPago(id: string): Pedido | undefined {
-    const pedido = this.obterPedidoPorId(id);
-    if (pedido) {
-      pedido.pago = !pedido.pago;
-      return pedido;
+  async togglePaid(id: string): Promise<Order | undefined> {
+    const order = await this.getOrderById(id);
+    if (order) {
+      return this.updateOrder(id, { paid: !order?.[0].paid });
     }
-    return undefined;
+    return;
   }
 }
 
-export const pedidoService = new PedidoService();
+export const orderService = new OrderService();

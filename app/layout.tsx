@@ -8,7 +8,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Gerenciamento de Pedidos",
   description: "SaaS para gerenciamento de pedidos",
-  generator: "v0.dev",
 };
 
 export default function RootLayout({

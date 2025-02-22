@@ -4,11 +4,11 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { pedidoService } from "../../services/pedidoService";
+import { orderService } from "../../services/pedidoService";
 import {
-  type Pedido,
-  StatusPedido,
-  FormaPagamento,
+  type Order,
+  OrderStatus,
+  PaymentMethod,
   getStatusColor,
 } from "../../types/pedido";
 import PedidoModal from "../../components/PedidoModal";
@@ -23,78 +23,75 @@ import {
 } from "../../components/ui/select";
 import { Edit, Eye } from "lucide-react";
 
-export default function Pedidos() {
+export default function Orders() {
   const router = useRouter();
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [filtro, setFiltro] = useState("");
-  const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(
-    null
-  );
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [filter, setFilter] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  async function fetchOrders() {
+    try {
+      const allOrders = await orderService.getAllOrders();
+      setOrders(allOrders);
+    } catch (error: any) {
+      console.error(error);
+    }
+  }
 
   useEffect(() => {
-    const todosPedidos = pedidoService.obterTodosPedidos();
-    setPedidos(todosPedidos);
+    fetchOrders();
   }, []);
 
-  const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFiltro(e.target.value);
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilter(e.target.value);
   };
 
-  const aplicarFiltro = () => {
-    const pedidosFiltrados = pedidoService.filtrarPedidos({
-      termo: filtro,
+  const applyFilter = async () => {
+    const filteredOrders = await orderService.filterOrders({
+      term: filter,
     });
-    setPedidos(pedidosFiltrados);
+    setOrders(filteredOrders);
   };
 
-  const handleStatusChange = (id: string, novoStatus: StatusPedido) => {
-    const pedidoAtualizado = pedidoService.atualizarStatusPedido(
-      id,
-      novoStatus
-    );
-    if (pedidoAtualizado) {
-      setPedidos((prev) =>
-        prev.map((p) => (p.id === id ? pedidoAtualizado : p))
-      );
+  const handleStatusChange = async (id: string, newStatus: OrderStatus) => {
+    const updatedOrder = await orderService.updateOrderStatus(id, newStatus);
+    if (updatedOrder) {
+      setOrders((prev) => prev.map((p) => (p.id === id ? updatedOrder : p)));
     }
   };
 
-  const formatarValor = (valor: number) => {
-    return valor.toLocaleString("pt-BR", {
+  const formatValue = (val: number) => {
+    return val.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   };
 
-  const formatarData = (data: string, hora: string) => {
-    return `${new Date(data).toLocaleString("pt-BR", {
+  const formatDate = (date: string, time: string) => {
+    return `${new Date(date).toLocaleString("pt-BR", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    })}, ${hora}`;
+    })}, ${time}`;
   };
 
-  const handleFormaPagamentoChange = (
+  const handlePaymentMethodChange = async (
     id: string,
-    novaFormaPagamento: FormaPagamento
+    newPaymentMethod: PaymentMethod
   ) => {
-    const pedidoAtualizado = pedidoService.atualizarFormaPagamento(
+    const updatedOrder = await orderService.updatePaymentMethod(
       id,
-      novaFormaPagamento
+      newPaymentMethod
     );
-    if (pedidoAtualizado) {
-      setPedidos((prev) =>
-        prev.map((p) => (p.id === id ? pedidoAtualizado : p))
-      );
+    if (updatedOrder) {
+      setOrders((prev) => prev.map((p) => (p.id === id ? updatedOrder : p)));
     }
   };
 
-  const handlePagoToggle = (id: string) => {
-    const pedidoAtualizado = pedidoService.alternarPago(id);
-    if (pedidoAtualizado) {
-      setPedidos((prev) =>
-        prev.map((p) => (p.id === id ? pedidoAtualizado : p))
-      );
+  const handlePaidToggle = async (id: string) => {
+    const updatedOrder = await orderService.togglePaid(id);
+    if (updatedOrder) {
+      setOrders((prev) => prev.map((p) => (p.id === id ? updatedOrder : p)));
     }
   };
 
@@ -106,12 +103,12 @@ export default function Pedidos() {
           <Input
             type="text"
             placeholder="Filtrar por nome ou telefone"
-            value={filtro}
-            onChange={handleFiltroChange}
+            value={filter}
+            onChange={handleFilterChange}
             className="flex-grow"
           />
 
-          <Button onClick={aplicarFiltro}>Aplicar Filtro</Button>
+          <Button onClick={applyFilter}>Aplicar Filtro</Button>
         </div>
       </div>
       <div className="bg-white shadow overflow-x-scroll sm:rounded-lg">
@@ -160,25 +157,25 @@ export default function Pedidos() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-pastel-200">
-            {pedidos.map((pedido) => (
+            {orders?.map((pedido) => (
               <tr key={pedido.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-pastel-900">
-                  {pedido.nomeCompleto}
+                  {pedido.fullName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-pastel-500">
-                  {pedido.whatsapp}
+                  {pedido.phone}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-pastel-500">
-                  R$ {formatarValor(pedido.valorTotal)}
+                  R$ {formatValue(pedido.orderValue)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-pastel-500">
-                  {formatarData(pedido.dataEntrega, pedido.horaEntrega)}
+                  {formatDate(pedido.deliveryDate, pedido.deliveryTime)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Select
                     value={pedido.status}
                     onValueChange={(value) =>
-                      handleStatusChange(pedido.id, value as StatusPedido)
+                      handleStatusChange(pedido.id, value as OrderStatus)
                     }
                   >
                     <SelectTrigger
@@ -189,7 +186,7 @@ export default function Pedidos() {
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      {Object.values(StatusPedido).map((status) => (
+                      {Object.values(OrderStatus).map((status) => (
                         <SelectItem
                           key={status}
                           value={status}
@@ -205,14 +202,14 @@ export default function Pedidos() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
-                    onClick={() => handlePagoToggle(pedido.id)}
+                    onClick={() => handlePaidToggle(pedido.id)}
                     className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      pedido.pago
+                      pedido.paid
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {pedido.pago ? "Sim" : "Não"}
+                    {pedido.paid ? "Sim" : "Não"}
                   </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -225,7 +222,7 @@ export default function Pedidos() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setPedidoSelecionado(pedido)}
+                    onClick={() => setSelectedOrder(pedido)}
                   >
                     <Eye />
                   </Button>
@@ -235,10 +232,10 @@ export default function Pedidos() {
           </tbody>
         </table>
       </div>
-      {pedidoSelecionado && (
+      {selectedOrder && (
         <PedidoModal
-          pedido={pedidoSelecionado}
-          onClose={() => setPedidoSelecionado(null)}
+          pedido={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
         />
       )}
     </div>

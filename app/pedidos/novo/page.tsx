@@ -22,9 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { pedidoService } from "../../../services/pedidoService";
+import { orderService } from "../../../services/pedidoService";
 import InputMask from "react-input-mask";
-import { FormaPagamento } from "../../../types/pedido";
+import { PaymentMethod } from "../../../types/pedido";
 import { CalendarIcon } from "lucide-react";
 import {
   Popover,
@@ -36,74 +36,44 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
-
-const formSchema = z
-  .object({
-    nomeCompleto: z.string().min(3, {
-      message: "Nome deve ter pelo menos 3 caracteres.",
-    }),
-    whatsapp: z.string().regex(/^\(?(\d{2})\)?\s?9?\s?\d{4}-?\d{4}$/, {
-      message: "Número de WhatsApp inválido.",
-    }),
-    detalhes: z.string().min(10, {
-      message: "Detalhes devem ter pelo menos 10 caracteres.",
-    }),
-    tipoEntrega: z.enum(["retirada", "entrega"]),
-    enderecoEntrega: z.string().optional(),
-    dataEntrega: z.date({
-      required_error: "A data de entrega é obrigatória.",
-    }),
-    horaEntrega: z.string({
-      required_error: "A hora de entrega é obrigatória.",
-    }),
-    valorTotal: z.string({
-      required_error: "O valor total é obrigatório.",
-    }),
-    formaPagamento: z.nativeEnum(FormaPagamento),
-  })
-  .superRefine((data, ctx) => {
-    if (data.tipoEntrega === "entrega" && !data.enderecoEntrega) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "O endereço de entrega é obrigatório",
-        path: ["enderecoEntrega"],
-      });
-    }
-  });
+import { createOrderSchema } from "@/services/orderSchemas";
 
 export default function NovoPedido() {
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof createOrderSchema>>({
+    resolver: zodResolver(createOrderSchema),
     defaultValues: {
-      nomeCompleto: "",
-      whatsapp: "",
-      detalhes: "",
-      tipoEntrega: "retirada",
-      enderecoEntrega: "",
-      valorTotal: "R$ 0,00",
-      horaEntrega: "",
-      formaPagamento: FormaPagamento.NaoDefinido,
+      userId: "67b932c6bcc4e92a3fe5cf25",
+      fullName: "",
+      phone: "",
+      details: "",
+      deliveryType: "retirada",
+      deliveryAddress: "",
+      orderValue: "R$ 0,00",
+      deliveryTime: "",
+      paymentMethod: PaymentMethod.NaoDefinido,
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.tipoEntrega === "entrega" && !values.enderecoEntrega) {
-      form.setError("enderecoEntrega", {
+  async function onSubmit(values: z.infer<typeof createOrderSchema>) {
+    if (values.deliveryType === "entrega" && !values.deliveryAddress) {
+      form.setError("deliveryAddress", {
         type: "manual",
       });
       return;
     }
 
-    const valorTotalNumerico = Number.parseFloat(
-      values.valorTotal.replace("R$ ", "").replace(".", "").replace(",", ".")
+    const orderValueNumerico = Number.parseFloat(
+      values.orderValue.replace("R$", "").replace(".", "").replace(",", ".")
     );
-    const novoPedido = pedidoService.criarPedido({
+
+    await orderService.createOrder({
       ...values,
-      valorTotal: valorTotalNumerico,
-      dataEntrega: values.dataEntrega.toISOString(),
+      orderValue: orderValueNumerico,
+      deliveryDate: values.deliveryDate.toISOString(),
     });
+
     router.push("/pedidos");
   }
 
@@ -111,11 +81,14 @@ export default function NovoPedido() {
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
       <h1 className="text-2xl font-bold mb-6 text-pastel-800">Novo Pedido</h1>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form
+          onSubmit={form.handleSubmit(onSubmit, (err) => console.log(err))}
+          className="space-y-8"
+        >
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="nomeCompleto"
+              name="fullName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome Completo</FormLabel>
@@ -128,7 +101,7 @@ export default function NovoPedido() {
             />
             <FormField
               control={form.control}
-              name="whatsapp"
+              name="phone"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>WhatsApp</FormLabel>
@@ -155,7 +128,7 @@ export default function NovoPedido() {
 
           <FormField
             control={form.control}
-            name="detalhes"
+            name="details"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Detalhes do Pedido</FormLabel>
@@ -172,7 +145,7 @@ export default function NovoPedido() {
 
           <FormField
             control={form.control}
-            name="tipoEntrega"
+            name="deliveryType"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tipo de Entrega</FormLabel>
@@ -194,10 +167,10 @@ export default function NovoPedido() {
               </FormItem>
             )}
           />
-          {form.watch("tipoEntrega") === "entrega" && (
+          {form.watch("deliveryType") === "entrega" && (
             <FormField
               control={form.control}
-              name="enderecoEntrega"
+              name="deliveryAddress"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Endereço de Entrega</FormLabel>
@@ -212,7 +185,7 @@ export default function NovoPedido() {
           <div className="grid grid-cols-2 gap-4 items-start">
             <FormField
               control={form.control}
-              name="dataEntrega"
+              name="deliveryDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Entrega</FormLabel>
@@ -252,7 +225,7 @@ export default function NovoPedido() {
             />
             <FormField
               control={form.control}
-              name="horaEntrega"
+              name="deliveryTime"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Hora de Entrega</FormLabel>
@@ -273,7 +246,7 @@ export default function NovoPedido() {
           <div className="grid grid-cols-2 gap-4 items-end">
             <FormField
               control={form.control}
-              name="valorTotal"
+              name="orderValue"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Valor Total</FormLabel>
@@ -303,7 +276,7 @@ export default function NovoPedido() {
 
             <FormField
               control={form.control}
-              name="formaPagamento"
+              name="paymentMethod"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Forma de Pagamento</FormLabel>
@@ -317,7 +290,7 @@ export default function NovoPedido() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.values(FormaPagamento).map((forma) => (
+                      {Object.values(PaymentMethod).map((forma) => (
                         <SelectItem key={forma} value={forma}>
                           {forma}
                         </SelectItem>

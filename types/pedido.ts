@@ -1,4 +1,4 @@
-export enum StatusPedido {
+export enum OrderStatus {
   NovoPedido = "Novo pedido",
   EmPreparo = "Em preparo",
   Finalizado = "Finalizado",
@@ -6,41 +6,41 @@ export enum StatusPedido {
   Cancelado = "Cancelado",
 }
 
-export enum FormaPagamento {
+export enum PaymentMethod {
   PIX = "PIX",
   Dinheiro = "Dinheiro",
   Cartao = "Cartão",
   NaoDefinido = "Não definido",
 }
 
-export interface Pedido {
+export interface Order {
   id: string;
-  dataCriado: string;
-  nomeCompleto: string;
-  whatsapp: string;
-  detalhes: string;
-  tipoEntrega: "retirada" | "entrega";
-  enderecoEntrega?: string;
-  dataEntrega: string;
-  horaEntrega: string;
-  valorTotal: number;
-  status: StatusPedido;
-  motivoCancelamento?: string;
-  formaPagamento: FormaPagamento;
-  pago: boolean;
+  createdAt: string;
+  fullName: string;
+  phone: string;
+  details: string;
+  deliveryType: "retirada" | "entrega";
+  deliveryAddress?: string;
+  deliveryDate: string;
+  deliveryTime: string;
+  orderValue: number;
+  status: OrderStatus;
+  cancellationReason?: string | null;
+  paymentMethod: PaymentMethod;
+  paid: boolean;
 }
 
-export function getStatusColor(status: StatusPedido) {
+export function getStatusColor(status: OrderStatus) {
   switch (status) {
-    case StatusPedido.NovoPedido:
+    case OrderStatus.NovoPedido:
       return "bg-blue-100 text-blue-800 focus:bg-blue-200";
-    case StatusPedido.EmPreparo:
+    case OrderStatus.EmPreparo:
       return "bg-yellow-100 text-yellow-800 focus:bg-yellow-200";
-    case StatusPedido.Finalizado:
+    case OrderStatus.Finalizado:
       return "bg-green-100 text-green-800 focus:bg-green-200";
-    case StatusPedido.Entregue:
+    case OrderStatus.Entregue:
       return "bg-purple-100 text-purple-800 focus:bg-purple-200";
-    case StatusPedido.Cancelado:
+    case OrderStatus.Cancelado:
       return "bg-red-100 text-red-800 focus:bg-red-200";
     default:
       return "bg-gray-100 text-gray-800 focus:bg-gray-200";
