@@ -1,78 +1,96 @@
-import { type Pedido, StatusPedido, FormaPagamento } from "../types/pedido"
+import { type Pedido, StatusPedido, FormaPagamento } from "../types/pedido";
 
 class PedidoService {
-  private pedidos: Pedido[] = []
+  private pedidos: Pedido[] = [];
 
-  criarPedido(pedido: Omit<Pedido, "id" | "status" | "formaPagamento" | "pago">): Pedido {
+  criarPedido(
+    pedido: Omit<
+      Pedido,
+      "id" | "status" | "formaPagamento" | "pago" | "dataCriado"
+    >
+  ): Pedido {
     const novoPedido: Pedido = {
       ...pedido,
       id: Date.now().toString(),
+      dataCriado: new Date().toString(),
       status: StatusPedido.NovoPedido,
       formaPagamento: FormaPagamento.NaoDefinido,
       pago: false,
-    }
-    this.pedidos.push(novoPedido)
-    return novoPedido
+    };
+    this.pedidos.push(novoPedido);
+    return novoPedido;
   }
 
   obterTodosPedidos(): Pedido[] {
-    return this.pedidos
+    return this.pedidos;
   }
 
   obterPedidoPorId(id: string): Pedido | undefined {
-    return this.pedidos.find((pedido) => pedido.id === id)
+    return this.pedidos.find((pedido) => pedido.id === id);
   }
 
-  atualizarPedido(id: string, dadosAtualizados: Partial<Pedido>): Pedido | undefined {
-    const index = this.pedidos.findIndex((pedido) => pedido.id === id)
+  atualizarPedido(
+    id: string,
+    dadosAtualizados: Partial<Pedido>
+  ): Pedido | undefined {
+    const index = this.pedidos.findIndex((pedido) => pedido.id === id);
     if (index !== -1) {
-      this.pedidos[index] = { ...this.pedidos[index], ...dadosAtualizados }
-      return this.pedidos[index]
+      this.pedidos[index] = { ...this.pedidos[index], ...dadosAtualizados };
+      return this.pedidos[index];
     }
-    return undefined
+    return undefined;
   }
 
-  atualizarStatusPedido(id: string, novoStatus: StatusPedido, motivoCancelamento?: string): Pedido | undefined {
-    const pedido = this.obterPedidoPorId(id)
+  atualizarStatusPedido(
+    id: string,
+    novoStatus: StatusPedido,
+    motivoCancelamento?: string
+  ): Pedido | undefined {
+    const pedido = this.obterPedidoPorId(id);
     if (pedido) {
-      pedido.status = novoStatus
+      pedido.status = novoStatus;
       if (novoStatus === StatusPedido.Cancelado) {
-        pedido.motivoCancelamento = motivoCancelamento
+        pedido.motivoCancelamento = motivoCancelamento;
       }
-      return pedido
+      return pedido;
     }
-    return undefined
+    return undefined;
   }
 
-  filtrarPedidos(filtro: { termo?: string }): Pedido[] {
+  filtrarPedidos(filtro: { termo?: string; pago?: boolean }): Pedido[] {
     if (!filtro.termo) {
-      return this.pedidos
+      return this.pedidos;
     }
 
-    const termoLowerCase = filtro.termo.toLowerCase()
+    const termoLowerCase = filtro.termo.toLowerCase();
+
     return this.pedidos.filter(
-      (pedido) => pedido.nomeCompleto.toLowerCase().includes(termoLowerCase) || pedido.whatsapp.includes(filtro.termo),
-    )
+      (pedido) =>
+        pedido.nomeCompleto.toLowerCase().includes(termoLowerCase) ||
+        pedido.whatsapp.includes(filtro.termo ?? "")
+    );
   }
 
-  atualizarFormaPagamento(id: string, formaPagamento: FormaPagamento): Pedido | undefined {
-    const pedido = this.obterPedidoPorId(id)
+  atualizarFormaPagamento(
+    id: string,
+    formaPagamento: FormaPagamento
+  ): Pedido | undefined {
+    const pedido = this.obterPedidoPorId(id);
     if (pedido) {
-      pedido.formaPagamento = formaPagamento
-      return pedido
+      pedido.formaPagamento = formaPagamento;
+      return pedido;
     }
-    return undefined
+    return undefined;
   }
 
   alternarPago(id: string): Pedido | undefined {
-    const pedido = this.obterPedidoPorId(id)
+    const pedido = this.obterPedidoPorId(id);
     if (pedido) {
-      pedido.pago = !pedido.pago
-      return pedido
+      pedido.pago = !pedido.pago;
+      return pedido;
     }
-    return undefined
+    return undefined;
   }
 }
 
-export const pedidoService = new PedidoService()
-
+export const pedidoService = new PedidoService();

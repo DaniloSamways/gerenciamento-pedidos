@@ -1,53 +1,95 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
-import { CalendarIcon } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
-import { pedidoService } from "../../../../services/pedidoService"
-import { StatusPedido, FormaPagamento } from "../../../../types/pedido"
-import InputMask from "react-input-mask-next"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { pedidoService } from "../../../../services/pedidoService";
+import {
+  StatusPedido,
+  FormaPagamento,
+  getStatusColor,
+} from "../../../../types/pedido";
+import InputMask from "react-input-mask";
+import { Checkbox } from "@/components/ui/checkbox";
 
-const formSchema = z.object({
-  nomeCompleto: z.string().min(3, {
-    message: "Nome deve ter pelo menos 3 caracteres.",
-  }),
-  whatsapp: z.string().regex(/^$$\d{2}$$ \d \d{4}-\d{4}$/, {
-    message: "Formato inválido. Use (XX) X XXXX-XXXX",
-  }),
-  detalhes: z.string().min(10, {
-    message: "Detalhes devem ter pelo menos 10 caracteres.",
-  }),
-  tipoEntrega: z.enum(["retirada", "entrega"]),
-  enderecoEntrega: z.string().optional(),
-  dataEntrega: z.date({
-    required_error: "A data de entrega é obrigatória.",
-  }),
-  valorTotal: z.string().regex(/^R\$ \d{1,3}(\.\d{3})*,\d{2}$/, {
-    message: "Formato inválido. Use R$ X.XXX,XX",
-  }),
-  status: z.nativeEnum(StatusPedido),
-  motivoCancelamento: z.string().optional(),
-  formaPagamento: z.nativeEnum(FormaPagamento),
-  pago: z.boolean(),
-})
+const formSchema = z
+  .object({
+    nomeCompleto: z.string().min(3, {
+      message: "Nome deve ter pelo menos 3 caracteres.",
+    }),
+    whatsapp: z.string().regex(/^\(?(\d{2})\)?\s?9?\s?\d{4}-?\d{4}$/, {
+      message: "Número de WhatsApp inválido.",
+    }),
+    detalhes: z.string().min(10, {
+      message: "Detalhes devem ter pelo menos 10 caracteres.",
+    }),
+    tipoEntrega: z.enum(["retirada", "entrega"]),
+    enderecoEntrega: z.string().optional(),
+    dataEntrega: z.date({
+      required_error: "A data de entrega é obrigatória.",
+    }),
+    horaEntrega: z.string({
+      required_error: "A hora de entrega é obrigatória.",
+    }),
+    valorTotal: z.string({
+      required_error: "O valor total é obrigatório.",
+    }),
+    formaPagamento: z.nativeEnum(FormaPagamento),
+    pago: z.boolean(),
+    status: z.nativeEnum(StatusPedido),
+    motivoCancelamento: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.tipoEntrega === "entrega" && !data.enderecoEntrega) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O endereço de entrega é obrigatório",
+        path: ["enderecoEntrega"],
+      });
+    }
+
+    if (data.status === StatusPedido.Cancelado && !data.motivoCancelamento) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O motivo do cancelamento é obrigatório",
+      });
+    }
+  });
 
 export default function EditarPedido({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const [date, setDate] = useState<Date | undefined>(undefined)
+  const router = useRouter();
+  const [date, setDate] = useState<Date | undefined>(undefined);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,39 +99,62 @@ export default function EditarPedido({ params }: { params: { id: string } }) {
       detalhes: "",
       tipoEntrega: "retirada",
       enderecoEntrega: "",
-      valorTotal: "",
-      status: StatusPedido.NovoPedido,
+      valorTotal: "R$ 0,00",
+      horaEntrega: "",
       formaPagamento: FormaPagamento.NaoDefinido,
       pago: false,
+      status: StatusPedido.NovoPedido,
+      motivoCancelamento: "",
     },
-  })
+  });
 
   useEffect(() => {
-    const pedido = pedidoService.obterPedidoPorId(params.id)
+    const pedido = pedidoService.obterPedidoPorId(params.id);
     if (pedido) {
-      const dataEntrega = new Date(pedido.dataEntrega)
-      setDate(dataEntrega)
+      const dataEntrega = new Date(pedido.dataEntrega);
+      setDate(dataEntrega);
       form.reset({
         ...pedido,
         dataEntrega: dataEntrega,
-        valorTotal: `R$ ${pedido.valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      })
+        valorTotal: `R$ ${pedido.valorTotal.toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+      });
     } else {
-      router.push("/pedidos")
+      router.push("/pedidos");
     }
-  }, [params.id, form, router])
+  }, [params.id, form, router]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log(values);
+    if (values.tipoEntrega === "entrega" && !values.enderecoEntrega) {
+      form.setError("enderecoEntrega", {
+        type: "manual",
+      });
+      return;
+    }
+
+    if (
+      values.status === StatusPedido.Cancelado &&
+      !values.motivoCancelamento
+    ) {
+      form.setError("motivoCancelamento", {
+        type: "manual",
+      });
+      return;
+    }
+
     const valorTotalNumerico = Number.parseFloat(
-      values.valorTotal.replace("R$ ", "").replace(".", "").replace(",", "."),
-    )
+      values.valorTotal.replace("R$", "").replace(".", "").replace(",", ".")
+    );
     const pedidoAtualizado = pedidoService.atualizarPedido(params.id, {
       ...values,
       valorTotal: valorTotalNumerico,
       dataEntrega: values.dataEntrega.toISOString(),
-    })
+    });
     if (pedidoAtualizado) {
-      router.push("/pedidos")
+      router.push("/pedidos");
     }
   }
 
@@ -98,39 +163,47 @@ export default function EditarPedido({ params }: { params: { id: string } }) {
       <h1 className="text-2xl font-bold mb-6 text-pastel-800">Editar Pedido</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="nomeCompleto"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome Completo</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="whatsapp"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>WhatsApp</FormLabel>
-                <FormControl>
-                  <InputMask
-                    mask="(99) 9 9999-9999"
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="(XX) X XXXX-XXXX"
-                  >
-                    {(inputProps: any) => <Input {...inputProps} />}
-                  </InputMask>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="nomeCompleto"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome Completo</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nome do cliente" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="whatsapp"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>WhatsApp</FormLabel>
+                  <FormControl>
+                    <InputMask
+                      mask="(99) 9 9999-9999"
+                      value={field.value}
+                      onChange={field.onChange}
+                    >
+                      {(inputProps: any) => (
+                        <Input
+                          placeholder="Número de celular do cliente"
+                          ref={field.ref}
+                          {...inputProps}
+                        />
+                      )}
+                    </InputMask>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <FormField
             control={form.control}
             name="detalhes"
@@ -138,19 +211,26 @@ export default function EditarPedido({ params }: { params: { id: string } }) {
               <FormItem>
                 <FormLabel>Detalhes do Pedido</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Textarea
+                    placeholder="Descreva os detalhes do pedido"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="tipoEntrega"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tipo de Entrega</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de entrega" />
@@ -173,84 +253,159 @@ export default function EditarPedido({ params }: { params: { id: string } }) {
                 <FormItem>
                   <FormLabel>Endereço de Entrega</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Endereço completo" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           )}
-          <FormField
-            control={form.control}
-            name="dataEntrega"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data de Entrega</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                      >
-                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={(date) => {
-                        setDate(date)
-                        field.onChange(date)
-                      }}
-                      disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
-                      initialFocus
+          <div className="grid grid-cols-2 gap-4 items-start">
+            <FormField
+              control={form.control}
+              name="dataEntrega"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Data de Entrega</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: ptBR })
+                          ) : (
+                            <span>Escolha um dia</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={{ before: new Date() }}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="horaEntrega"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Hora de Entrega</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="time"
+                      placeholder="Escolha um horário"
+                      {...field}
+                      required
                     />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="valorTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor Total</FormLabel>
-                <FormControl>
-                  <InputMask
-                    mask="R$ 999.999,99"
-                    value={field.value}
-                    onChange={field.onChange}
-                    maskChar={null}
-                    placeholder="R$ 0,00"
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 items-end">
+            <FormField
+              control={form.control}
+              name="valorTotal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor Total</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="value"
+                      name="value"
+                      type="text"
+                      value={field.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const numericValue = value.replace(/[^0-9]/g, "");
+                        const formattedValue = new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(Number(numericValue) / 100);
+
+                        field.onChange(formattedValue);
+                      }}
+                      required
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="formaPagamento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Forma de Pagamento</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
                   >
-                    {(inputProps: any) => <Input {...inputProps} />}
-                  </InputMask>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a forma de pagamento" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(FormaPagamento).map((forma) => (
+                        <SelectItem key={forma} value={forma}>
+                          {forma}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
             name="status"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger
+                      className={`w-[150px] h-6 ${getStatusColor(
+                        field.value
+                      )} rounded-full text-xs font-semibold`}
+                    >
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {Object.values(StatusPedido).map((status) => (
-                      <SelectItem key={status} value={status}>
+                      <SelectItem
+                        key={status}
+                        value={status}
+                        className={`${getStatusColor(status)} my-2 rounded`}
+                      >
                         {status}
                       </SelectItem>
                     ))}
@@ -277,39 +432,20 @@ export default function EditarPedido({ params }: { params: { id: string } }) {
           )}
           <FormField
             control={form.control}
-            name="formaPagamento"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Forma de Pagamento</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a forma de pagamento" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(FormaPagamento).map((forma) => (
-                      <SelectItem key={forma} value={forma}>
-                        {forma}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="pago"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
                 <div className="space-y-1 leading-none">
                   <FormLabel>Pedido Pago</FormLabel>
-                  <FormDescription>Marque esta caixa se o pedido já foi pago.</FormDescription>
+                  <FormDescription>
+                    Marque esta caixa se o pedido já foi pago.
+                  </FormDescription>
                 </div>
               </FormItem>
             )}
@@ -318,6 +454,5 @@ export default function EditarPedido({ params }: { params: { id: string } }) {
         </form>
       </Form>
     </div>
-  )
+  );
 }
-
