@@ -4,9 +4,5 @@
       "src": "package.json",
       "use": "@vercel/node"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@DATABASE_URL",
-    "NEXTAUTH_SECRET": "@NEXTAUTH_SECRET"
-  }
+  ]
 }
