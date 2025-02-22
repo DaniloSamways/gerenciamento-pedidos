@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { getOrderByIdSchema, updateOrderSchema } from "@/services/orderSchemas";
+import { getOrderByIdSchema, updateOrderSchema } from "@/schemas/orderSchemas";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 const prisma = new PrismaClient();
 
@@ -9,6 +11,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+
+    // Se a sessão não for válida, retorne um erro ou redirecione
+    if (!session) {
+      return NextResponse.redirect("/");
+    }
+
     const orderId = params.id as string;
 
     const validateData = getOrderByIdSchema.safeParse({ id: orderId });
@@ -34,6 +43,13 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+
+  // Se a sessão não for válida, retorne um erro ou redirecione
+  if (!session) {
+    return NextResponse.redirect("/");
+  }
+
   const data = await req.json();
   const orderId = params.id as string;
 

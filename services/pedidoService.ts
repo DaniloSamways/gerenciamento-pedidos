@@ -69,9 +69,9 @@ class OrderService {
     paid?: boolean;
   }): Promise<Order[]> {
     const params = new URLSearchParams();
-    if (filter.term) params.append("status", filter.term);
-    if (filter.paid !== undefined) params.append("paid", String(filter.paid));
-    const response = await fetch(`${this.baseUrl}?${params.toString()}`);
+    if (filter.term) params.append("term", filter.term);
+    // if (filter.paid !== undefined) params.append("paid", String(filter.paid));
+    const response = await fetch(`${this.baseUrl}/filter?${params.toString()}`);
 
     if (!response.ok) {
       throw new Error("Erro ao buscar pedidos.");

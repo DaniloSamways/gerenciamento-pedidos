@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { createOrderSchema } from "@/services/orderSchemas";
+import { createOrderSchema } from "@/schemas/orderSchemas";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    // Se a sessão não for válida, retorne um erro ou redirecione
+    if (!session) {
+      return NextResponse.redirect("/");
+    }
+
     const data = await req.json();
 
     const validateData = createOrderSchema.safeParse({
@@ -31,6 +40,13 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    // Se a sessão não for válida, retorne um erro ou redirecione
+    if (!session) {
+      return NextResponse.redirect("/");
+    }
+
     const orders = await prisma.order.findMany({});
 
     return NextResponse.json(orders);

@@ -115,3 +115,7 @@ export const updateOrderSchema = z
       });
     }
   });
+
+export const filterOrderSchema = z.object({
+  term: z.string().optional(),
+});

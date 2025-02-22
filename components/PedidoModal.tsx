@@ -57,7 +57,7 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
                 <span className="font-bold text-base">Status</span>
                 <p
                   className={cn(
-                    "rounded-xl max-w-fit px-2 py-1 text-xs",
+                    "rounded-xl max-w-fit px-2 py-1 text-xs font-semibold",
                     getStatusColor(pedido.status)
                   )}
                 >
@@ -93,7 +93,9 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
 
             <div>
               <span className="font-bold text-base">Detalhes</span>
-              <p className="whitespace-pre-line">{pedido.details}</p>
+              <p className="whitespace-pre-line max-h-[100px] overflow-y-scroll">
+                {pedido.details}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

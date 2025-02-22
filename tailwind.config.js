@@ -8,6 +8,7 @@ module.exports = {
     "*.{js,ts,jsx,tsx,mdx}",
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
+    "./types/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
