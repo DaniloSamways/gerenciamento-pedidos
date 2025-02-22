@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 
 // Declare the types for session and token to add custom properties
 declare module "next-auth" {
@@ -18,6 +19,7 @@ declare module "next-auth" {
 const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
