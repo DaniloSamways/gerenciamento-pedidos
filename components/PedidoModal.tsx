@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import { getStatusColor, type Order } from "../types/pedido";
 import { Button } from "./ui/button";
+import { formatPhoneNumber } from "@/utils/formatPhoneNumber";
+import { formatValue } from "@/utils/formatValue";
 
 interface PedidoModalProps {
   pedido: Order;
@@ -8,13 +10,6 @@ interface PedidoModalProps {
 }
 
 export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
-  const formatarValor = (valor: number) => {
-    return valor.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const formatarData = (data: string, hora?: string) => {
     if (hora) {
       return `${new Date(data).toLocaleString("pt-BR", {
@@ -43,11 +38,11 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mt-3 text-center">
-          <h3 className="text-lg leading-6 font-medium text-pastel-900">
+          <h3 className="text-lg leading-6 font-medium text-primary-900">
             Detalhes do Pedido{" "}
-            <span className="text-sm text-pastel-500">- {pedido.id}</span>
+            <span className="text-sm text-secondary-500">- {pedido.id}</span>
           </h3>
-          <div className="flex flex-col gap-4 mt-2 px-7 py-3 text-left text-sm text-pastel-500">
+          <div className="flex flex-col gap-4 mt-2 px-7 py-3 text-left text-sm text-secondary-500">
             <div>
               <span className="font-bold text-base">Criado em</span>
               <p>{formatarData(pedido.createdAt, pedido.deliveryTime)}</p>
@@ -87,7 +82,7 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
 
               <div>
                 <span className="font-bold text-base">WhatsApp</span>
-                <p>{pedido.phone}</p>
+                <p>{formatPhoneNumber(pedido.phone)}</p>
               </div>
             </div>
 
@@ -119,7 +114,7 @@ export default function PedidoModal({ pedido, onClose }: PedidoModalProps) {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="font-bold text-base">Valor Total</span>
-                <p>R$ {formatarValor(pedido.orderValue)}</p>
+                <p>R$ {formatValue(pedido.orderValue)}</p>
               </div>
 
               <div>

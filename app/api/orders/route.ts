@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { createOrderSchema } from "@/schemas/orderSchemas";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { createOrderSchema } from "../schemas/orderSchemas";
 
-const prisma = new PrismaClient({
-  log: ["query", "info", "warn", "error"],
-});
+const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
@@ -18,10 +16,11 @@ export async function POST(req: Request) {
     }
 
     const data = await req.json();
+    const userId = session.id;
 
     const validateData = createOrderSchema.safeParse({
       ...data,
-      orderValue: String(data.orderValue),
+      orderValue: data.orderValue,
       deliveryDate: new Date(data.deliveryDate),
     });
 
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
     }
 
     const order = await prisma.order.create({
-      data: data,
+      data: { ...validateData.data, userId },
     });
 
     return NextResponse.json(order);
@@ -49,7 +48,22 @@ export async function GET(req: Request) {
       return NextResponse.redirect("/");
     }
 
-    const orders = await prisma.order.findMany({});
+    const userId = session.id;
+
+    const page = req.url.includes("?page=")
+      ? Number(req.url.split("?page=")[1])
+      : 1;
+
+    const orders = await prisma.order.findMany({
+      skip: (page - 1) * 10,
+      take: 10,
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     return NextResponse.json(orders);
   } catch (error: any) {

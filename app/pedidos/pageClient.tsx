@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { Edit, Eye } from "lucide-react";
+import { formatPhoneNumber } from "@/utils/formatPhoneNumber";
 
 export function Orders() {
   const router = useRouter();
@@ -75,18 +76,18 @@ export function Orders() {
     })}, ${time}`;
   };
 
-  const handlePaymentMethodChange = async (
-    id: string,
-    newPaymentMethod: PaymentMethod
-  ) => {
-    const updatedOrder = await orderService.updatePaymentMethod(
-      id,
-      newPaymentMethod
-    );
-    if (updatedOrder) {
-      setOrders((prev) => prev.map((p) => (p.id === id ? updatedOrder : p)));
-    }
-  };
+  // const handlePaymentMethodChange = async (
+  //   id: string,
+  //   newPaymentMethod: PaymentMethod
+  // ) => {
+  //   const updatedOrder = await orderService.updatePaymentMethod(
+  //     id,
+  //     newPaymentMethod
+  //   );
+  //   if (updatedOrder) {
+  //     setOrders((prev) => prev.map((p) => (p.id === id ? updatedOrder : p)));
+  //   }
+  // };
 
   const handlePaidToggle = async (id: string) => {
     const updatedOrder = await orderService.togglePaid(id);
@@ -97,7 +98,7 @@ export function Orders() {
 
   return (
     <div className="flex flex-col gap-6 mt-8">
-      <h1 className="text-2xl font-bold text-pastel-800">Todos os Pedidos</h1>
+      <h1 className="text-2xl font-bold text-primary-900">Todos os Pedidos</h1>
       <div className="bg-white p-4 rounded-lg shadow space-y-4">
         <div className="flex gap-4">
           <Input
@@ -112,63 +113,73 @@ export function Orders() {
         </div>
       </div>
       <div className="bg-white shadow overflow-x-scroll sm:rounded-lg">
-        <table className="min-w-full divide-y divide-pastel-200">
-          <thead className="bg-pastel-50">
+        <table className="min-w-full divide-y divide-secondary-200">
+          <thead className="bg-secondary-50">
             <tr>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider"
               >
                 Nome
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider"
               >
                 Telefone
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider"
               >
                 Valor Total
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider"
               >
                 Data Entrega
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider"
               >
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                 Pago
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-pastel-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider"
               >
                 Ações
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-pastel-200">
+          <tbody className="bg-white divide-y divide-secondary-200 w-full">
+            {!orders.length && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-6 py-8 whitespace-nowrap text-sm text-center font-medium text-secondary-500"
+                >
+                  Nenhum pedido encontrado
+                </td>
+              </tr>
+            )}
             {orders?.map((pedido) => (
               <tr key={pedido.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-pastel-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">
                   {pedido.fullName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-pastel-500">
-                  {pedido.phone}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                  {formatPhoneNumber(pedido.phone)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-pastel-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
                   R$ {formatValue(pedido.orderValue)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-pastel-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
                   {formatDate(pedido.deliveryDate, pedido.deliveryTime)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -181,7 +192,7 @@ export function Orders() {
                     <SelectTrigger
                       className={`w-[150px] h-6 ${getStatusColor(
                         pedido.status
-                      )} rounded-full text-xs font-semibold`}
+                      )} rounded-full text-xs font-semibold border-white`}
                     >
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
@@ -216,13 +227,14 @@ export function Orders() {
                   <Button
                     variant="outline"
                     onClick={() => router.push(`/pedidos/editar/${pedido.id}`)}
-                    className="mr-2"
+                    className="mr-2 hover:bg-zinc-500 border-zinc-400"
                   >
                     <Edit />
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setSelectedOrder(pedido)}
+                    className="hover:bg-zinc-500 border-zinc-400"
                   >
                     <Eye />
                   </Button>

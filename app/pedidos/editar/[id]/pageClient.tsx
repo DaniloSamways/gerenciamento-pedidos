@@ -43,6 +43,7 @@ import {
 import InputMask from "react-input-mask";
 import { Checkbox } from "@/components/ui/checkbox";
 import { updateOrderSchema } from "@/schemas/orderSchemas";
+import { formatValue } from "@/utils/formatValue";
 
 export function EditarPedido({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -80,10 +81,7 @@ export function EditarPedido({ params }: { params: { id: string } }) {
         ...order,
         cancellationReason: order.cancellationReason || "",
         deliveryDate: deliveryDate,
-        orderValue: `R$ ${order.orderValue.toLocaleString("pt-BR", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`,
+        orderValue: formatValue(order.orderValue),
       });
     } else {
       router.push("/pedidos");
@@ -109,13 +107,11 @@ export function EditarPedido({ params }: { params: { id: string } }) {
       return;
     }
 
-    const orderValueNumeric = Number.parseFloat(
-      values.orderValue!.replace("R$", "").replace(".", "").replace(",", ".")
-    );
-
     const updatedOrder = await orderService.updateOrder(params.id, {
       ...values,
-      orderValue: orderValueNumeric,
+      orderValue: parseFloat(
+        values.orderValue?.replace(/[^\d,]/g, "").replace(",", ".")!
+      ),
       deliveryDate: values.deliveryDate!.toISOString(),
     });
     if (updatedOrder) {
@@ -124,14 +120,16 @@ export function EditarPedido({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-6 text-pastel-800">Editar Pedido</h1>
+    <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow text-primary-900">
+      <h1 className="text-2xl font-bold mb-6 text-primary-900">
+        Editar Pedido
+      </h1>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit, (err) => console.log(err))}
           className="space-y-8"
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 items-start">
             <FormField
               control={form.control}
               name="fullName"
@@ -289,7 +287,7 @@ export function EditarPedido({ params }: { params: { id: string } }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-2 gap-4 items-start">
             <FormField
               control={form.control}
               name="orderValue"

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { getOrderByIdSchema, updateOrderSchema } from "@/schemas/orderSchemas";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
+import {
+  getOrderByIdSchema,
+  updateOrderSchema,
+} from "../../schemas/orderSchemas";
 
-const prisma = new PrismaClient({
-  log: ["query", "info", "warn", "error"],
-});
+const prisma = new PrismaClient();
 
 export async function GET(
   req: Request,
@@ -21,6 +22,7 @@ export async function GET(
     }
 
     const orderId = params.id as string;
+    const userId = session.id;
 
     const validateData = getOrderByIdSchema.safeParse({ id: orderId });
 
@@ -31,6 +33,7 @@ export async function GET(
     const orders = await prisma.order.findMany({
       where: {
         id: orderId,
+        userId,
       },
     });
 
@@ -54,6 +57,7 @@ export async function PUT(
 
   const data = await req.json();
   const orderId = params.id as string;
+  const userId = session.id;
 
   const validateData = updateOrderSchema.safeParse({ data, orderId });
 
@@ -63,7 +67,10 @@ export async function PUT(
 
   const updatedOrder = await prisma.order.update({
     where: { id: orderId },
-    data: data,
+    data: {
+      ...validateData.data,
+      userId,
+    },
   });
 
   return NextResponse.json(updatedOrder);

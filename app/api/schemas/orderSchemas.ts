@@ -23,7 +23,7 @@ export const createOrderSchema = z
     deliveryTime: z.string({
       required_error: "A hora de entrega é obrigatória.",
     }),
-    orderValue: z.string(),
+    orderValue: z.number(),
 
     paymentMethod: z.nativeEnum(PaymentMethod),
     userId: z.string({
@@ -87,8 +87,7 @@ export const updateOrderSchema = z
         required_error: "A hora de entrega é obrigatória.",
       })
       .optional(),
-    orderValue: z.string().optional(),
-
+    orderValue: z.number().optional(),
     paymentMethod: z.nativeEnum(PaymentMethod).optional(),
     paid: z.boolean().optional(),
     status: z.nativeEnum(OrderStatus).optional(),

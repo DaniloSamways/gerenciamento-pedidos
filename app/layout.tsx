@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={inter.className}>
+      <body className={cn(inter.className, "bg-slate-50")}>
         <Providers>{children}</Providers>
       </body>
     </html>
@@ -26,3 +26,4 @@ export default function RootLayout({
 
 import "./globals.css";
 import Providers from "./providers";
+import { cn } from "@/lib/utils";

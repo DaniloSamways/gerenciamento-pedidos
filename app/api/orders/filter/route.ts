@@ -4,9 +4,7 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
-const prisma = new PrismaClient({
-  log: ["query", "info", "warn", "error"],
-});
+const prisma = new PrismaClient();
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +17,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect("/");
     }
 
+    const userId = session.id;
     const searchParams = req.nextUrl.searchParams;
 
+    const page = searchParams.get("page")
+      ? Number(searchParams.get("page"))
+      : 1;
+
     if (!searchParams.toString()) {
-      const orders = await prisma.order.findMany();
+      const orders = await prisma.order.findMany({
+        where: {
+          userId,
+        },
+        skip: (page - 1) * 10,
+        take: 10,
+      });
       return NextResponse.json(orders);
     }
 
@@ -36,22 +45,37 @@ export async function GET(req: NextRequest) {
 
     const normalizedPhone = term?.replace(/\D/g, "");
 
+    const filters: any[] = [];
+
+    if (validateData.data.term?.trim()) {
+      // Verifica se há um termo válido
+      filters.push({
+        fullName: {
+          contains: validateData.data.term.trim(),
+          mode: "insensitive",
+        },
+      });
+    }
+
+    if (normalizedPhone?.trim()) {
+      // Verifica se há um telefone válido
+      filters.push({
+        phone: {
+          contains: normalizedPhone.trim(),
+          mode: "insensitive",
+        },
+      });
+    }
+
     const orders = await prisma.order.findMany({
+      skip: (page - 1) * 10,
+      take: 10,
       where: {
-        OR: [
-          {
-            fullName: {
-              contains: validateData.data.term,
-              mode: "insensitive",
-            },
-          },
-          {
-            phone: {
-              contains: normalizedPhone,
-              mode: "insensitive",
-            },
-          },
-        ],
+        userId,
+        ...(filters.length > 0 ? { OR: filters } : {}), // Aplica OR apenas se houver filtros
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
